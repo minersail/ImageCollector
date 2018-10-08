@@ -1,0 +1,14 @@
+{
+	"manifest_version": 2,
+	"name": "Image Collector",
+	"version": "1",
+	"content_scripts": [
+		{
+			"matches": [
+				"<all_urls>"
+			],
+			"js": ["jquery-3.2.1.min.js", "jszip.min.js", "jszip-utils.min.js", "FileSaver.min.js", "content.js"]
+		}
+	],
+	"permissions": ["https://*/"]
+}
