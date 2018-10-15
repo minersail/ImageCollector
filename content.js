@@ -143,6 +143,12 @@ $(document).keydown(function(e)
 	}
 	if (e.keyCode == S) // Toggle Save
 	{
+		if (currData.url.substr(0, 5) === "data:") // Disallow png encodings to be downloaded
+		{
+			alert("This image has bad encoding. Please use a different image.");
+			return;
+		}
+
 		if (!image_saved) // Save
 			final_images.push(currData);
 		else
@@ -252,17 +258,34 @@ function removeImageData(arr, url)
 function downloadAll()
 {
 	let zip = new JSZip();
-	
-	final_images.forEach(function(image)
+	let matrices = "";
+	// Create a list of promises from the imageDatas.
+	let promises = final_images.map(image => urlToPromise(image.url.split("?")[0]));
+
+	// Map all promises that throw errors to return the error
+	Promise.all(promises.map(p => p.catch(e => e))).then(function(results)
 	{
-		zip.file(image.url.split("/").pop().split("?")[0], urlToPromise(image.url.split("?")[0]), {binary: true});
-	});
-	
-	zip.file("matrices.txt", final_images.join(""));         
-	zip.generateAsync({type:"blob"}).then(function(content)
-	{
-		saveAs(content, "images.zip"); 
-	});
+		results.forEach(function(result, i)
+		{
+			// Filter out errors
+			if (!(result instanceof Error))
+			{
+				zip.file(final_images[i].url.split("/").pop().split("?")[0], result, {binary: true});
+				matrices += final_images[i];
+				console.info(final_images[i].url);
+			}
+			else
+			{
+				console.warn("Unable to load " + final_images[i].url + ".");
+			}
+		});
+
+		zip.file("matrices.txt", matrices);         
+		zip.generateAsync({type:"blob"}).then(function(content)
+		{
+			saveAs(content, "images.zip"); 
+		});
+	});	
 }
 
 function urlToPromise(url) {
